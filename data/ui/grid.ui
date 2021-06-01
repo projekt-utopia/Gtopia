@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="UtopiaGrid" parent="AdwBin">
+    <property name="vexpand">true</property>
+    <property name="child">
+      <object class="GtkScrolledWindow" id="container">
+        <property name="hscrollbar_policy">never</property>
+        <property name="vexpand">true</property>
+        <property name="child">
+          <object class="GtkFlowBox" id="grid">
+            <property name="activate_on_single_click">false</property>
+            <property name="hexpand">true</property>
+            <property name="valign">start</property>
+            <property name="halign">start</property>
+            <property name="homogeneous">true</property>
+            <property name="min_children_per_line">2</property>
+            <property name="max_children_per_line">65535</property>
+            <property name="orientation">horizontal</property>
+            <property name="margin_top">6</property>
+            <property name="margin_bottom">6</property>
+            <property name="margin_start">12</property>
+            <property name="margin_end">12</property>
+          </object>
+        </property>
+      </object>
+    </property>
+  </template>
+</interface>

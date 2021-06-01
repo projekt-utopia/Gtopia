@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/dev/sp1rit/Utopia">
+    <file>artwork.svg</file>
+    <file>utopia.css</file>
+    <file>ui/window.ui</file>
+    <file>ui/integration_item.ui</file>
+    <file>ui/grid.ui</file>
+    <file>ui/card.ui</file>
+  </gresource>
+</gresources>

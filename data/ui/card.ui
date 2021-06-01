@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="UtopiaCard" parent="GtkFlowBoxChild">
+    <property name="css_classes">gcard</property>
+    <property name="child">
+      <object class="GtkFrame" id="frame">
+        <property name="css_classes">gframe</property>
+        <property name="child">
+          <object class="GtkOverlay" id="overlay">
+            <property name="css_classes">goverlay</property>
+            <property name="child">
+              <object class="GtkPicture" id="coverimg">
+                <property name="css_classes">gimg</property>
+                <property name="can_shrink">false</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+              </object>
+            </property>
+            <child type="overlay">
+              <object class="GtkBox" id="info">
+                <property name="css_classes">ginfo</property>
+                <property name="valign">end</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel" id="title">
+                    <property name="css_classes">gtitle</property>
+                    <property name="justify">center</property>
+                    <property name="wrap">true</property>
+                    <property name="lines">3</property>
+                    <property name="ellipsize">end</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="status">
+                    <property name="css_classes">gstatus</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </template>
+</interface>

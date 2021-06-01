@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="µmenu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_About µtopia</attribute>
+        <attribute name="action">app.about</attribute>
+      </item>
+    </section>
+  </menu>
+  <template class="UtopiaWindow" parent="AdwApplicationWindow">
+    <property name="default_width">1080</property>
+    <property name="default_height">720</property>
+    <property name="child">
+      <object class="GtkBox" id="container">
+        <property name="orientation">horizontal</property>
+        <child>
+          <object class="AdwLeaflet" id="leaflet">
+            <property name="hexpand">true</property>
+            <property name="hhomogeneous_unfolded">false</property>
+            <property name="interpolate_size">true</property>
+            <property name="can_swipe_back">true</property>
+            <child>
+              <object class="GtkBox" id="sidebar">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkHeaderBar" id="sidebar_header">
+                    <property name="show_title_buttons">false</property>
+                    <child type="end">
+                      <object class="GtkMenuButton" id="menu_btn">
+                        <property name="menu_model">µmenu</property>
+                        <property name="icon_name">open-menu-symbolic</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkListBox" id="module">
+                    <property name="show_separators">true</property>
+                    <property name="width_request">196</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="AdwLeafletPage">
+                <property name="navigatable">false</property>
+                <property name="child">
+                  <object class="GtkSeparator">
+                    <property name="orientation">vertical</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="library_box">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="AdwHeaderBar">
+                    <property name="hexpand">true</property>
+                    <child type="start">
+                      <object class="GtkButton" id="leaflet_back">
+                        <property name="visible">false</property>
+                        <style>
+                          <class name="image-button"/>
+                        </style>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_size">1</property>
+                            <property name="icon_name">go-previous-symbolic</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="start">
+                      <object class="GtkToggleButton" id="search_btn">
+                        <style>
+                          <class name="image-button"/>
+                        </style>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="icon_size">1</property>
+                            <property name="icon_name">system-search-symbolic</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkRevealer" id="search_revealer">
+                    <property name="transition_type">GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN</property>
+                    <property name="child">
+                      <object class="GtkSearchEntry" id="search">
+                        <property name="enable_undo">true</property>
+                        <property name="margin_top">6</property>
+                        <property name="margin_bottom">0</property>
+                        <property name="margin_start">12</property>
+                        <property name="margin_end">12</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkStack" id="library">
+                    <property name="transition_type">GTK_STACK_TRANSITION_TYPE_SLIDE_UP_DOWN</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+  </template>
+</interface>
