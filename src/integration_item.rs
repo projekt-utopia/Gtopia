@@ -53,10 +53,10 @@ impl UtopiaIntegrationItem {
 	pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create UtopiaIntegrationItem")
     }
-	pub fn init(&self, uuid: &str, name: &str, icon: &str) {
+	pub fn init(&self, uuid: &str, name: &str, icon: Option<&str>) {
 		let self_ = imp::UtopiaIntegrationItem::from_instance(self);
 		self_.name.set_label(name);
 		self_.uuid.set_label(uuid);
-		self_.icon.set_icon_name(Some(icon));
+		self_.icon.set_icon_name(icon);
 	}
 }

@@ -2,10 +2,12 @@
 <gresources>
   <gresource prefix="/dev/sp1rit/Utopia">
     <file>artwork.svg</file>
+    <file>utopia.svg</file>
     <file>utopia.css</file>
     <file>ui/window.ui</file>
     <file>ui/integration_item.ui</file>
     <file>ui/grid.ui</file>
     <file>ui/card.ui</file>
+    <file>ui/detail.ui</file>
   </gresource>
 </gresources>

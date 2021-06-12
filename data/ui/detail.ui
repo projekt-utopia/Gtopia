@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="UtopiaDetail" parent="GtkBox">
+    <property name="visible">false</property>
+    <property name="orientation">vertical</property>
+    <property name="margin_top">8</property>
+    <property name="margin_bottom">8</property>
+    <property name="margin_start">8</property>
+    <property name="margin_end">8</property>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="vexpand">true</property>
+        <property name="valign">start</property>
+        <property name="hscrollbar_policy">never</property>
+        <property name="propagate_natural_height">true</property>
+        <property name="child">
+          <object class="GtkBox" id="grid">
+            <property name="valign">start</property>
+            <property name="halign">center</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkFrame">
+                <property name="valign">start</property>
+                <property name="halign">center</property>
+                <property name="margin_top">12</property>
+                <property name="margin_bottom">6</property>
+                <property name="margin_start">4</property>
+                <property name="margin_end">4</property>
+                <property name="child">
+                  <object class="GtkPicture" id="cover">
+                    <property name="valign">start</property>
+                    <property name="halign">center</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="margin_top">3</property>
+                <property name="margin_bottom">6</property>
+                <child>
+                  <object class="GtkLabel" id="name">
+                    <property name="ellipsize">end</property>
+                    <property name="wrap">true</property>
+                    <property name="lines">3</property>
+                    <property name="justify">center</property>
+                    <property name="css_classes">ititle</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="uuid">
+                    <property name="ellipsize">start</property>
+                    <property name="css_classes">isubtitle</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="dinfos">
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="homogeneous">true</property>
+        <property name="orientation">horizontal</property>
+        <child>
+          <object class="GtkButton" id="hide_btn">
+            <property name="halign">start</property>
+            <property name="icon_name">back-symbolic</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="primary_btn">
+            <property name="halign">end</property>
+            <property name="label">Launch</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

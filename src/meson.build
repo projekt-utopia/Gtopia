@@ -1,5 +1,5 @@
 conf = configuration_data()
-conf.set_quoted('APP_ID', 'dev.sp1rit.Gtopia')
+conf.set_quoted('APP_ID', app_id)
 conf.set_quoted('PKGDATADIR', utopia_pkgdatadir)
 
 configure_file(
@@ -19,6 +19,7 @@ rust_sources = files(
 	'main.rs',
 	'application.rs',
 	'config.rs',
+	'detail.rs',
 	'grid/mod.rs',
 	'grid/card.rs',
 	'integration_item.rs',
@@ -37,7 +38,7 @@ cargo_release = custom_target(
 	'cargo-build',
 	build_by_default: true,
 	input: sources,
-	output: meson.project_name(),
+	output: 'gtopia',
 	console: true,
 	install: true,
 	install_dir: utopia_bindir,

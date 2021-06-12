@@ -7,7 +7,7 @@ project('µtopia',
 dependency('gtk4', version: '>= 4.0.0')
 dependency('libadwaita-1')
 
-
+app_id = 'dev.sp1rit.Gtopia'
 utopia_prefix = get_option('prefix')
 utopia_bindir = join_paths(utopia_prefix, get_option('bindir'))
 utopia_localedir = join_paths(utopia_prefix, get_option('localedir'))
@@ -22,3 +22,6 @@ cargo_sources = files(
 
 subdir('src')
 subdir('data')
+
+# Postinstall script (Update icon cache, gsettings, ...)
+meson.add_install_script('build-aux/meson/postinstall.py')

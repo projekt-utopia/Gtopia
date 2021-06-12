@@ -29,7 +29,9 @@ pub enum UtopiaRequest {
 	GetGameLibrary,
 	GetFullGameLibrary,
 	//GetGameDetails(String /* uuid */),
-	TriggerLaunch(String /* uuid */)
+	TriggerLaunch(String /* uuid */),
+	// uuid of game, uuid of provider
+	TriggerProviderUpdate(String, String)
 }
 
 #[derive(Debug)]
@@ -133,6 +135,16 @@ impl UtopiaEvents {
 										//tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
 									},
+									UtopiaRequest::TriggerProviderUpdate(uuid, provider) => {
+										let library_reqw = utopia::FrontendEvent {
+											version: String::from("0.0.0"),
+											uuid: Some(String::from(crate::config::APP_ID)),
+											action: utopia::FrontendActions::GameMethod(utopia_common::library::LibraryItemProviderMethods::ChangeSelectedProvider(uuid, provider))
+										};
+										//socket.block_writeable().await.unwrap();
+										//tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
+									},
 									_ => eprintln!("something else: {:?}", req)
 								}
 							}
@@ -168,7 +180,7 @@ pub fn handle_event(event: UtopiaMessage, channel: mpsc::Sender<UtopiaRequest>, 
 			for item in library {
 				//channel.try_send(UtopiaRequest::GetGameDetails(item.uuid)).unwrap();
 				//println!("Item: {:?}", item);
-				window.new_item(item, channel.clone());
+				window.new_item(item);
 			}
 		}
 	};

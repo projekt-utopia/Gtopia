@@ -47,7 +47,9 @@ mod imp {
 			window.set_title(Some("Utopia"));
 			self.window.set(window.downgrade()).expect("Failed to init application window");
 
+			let txw = tx.clone();
 			rx.attach(None, move |msg| handle_event(msg, tx.clone(), window.downgrade().clone().upgrade().unwrap()));
+			application.get_main_window().init_listener(txw);
             self.utopia.borrow().as_ref().unwrap().start();
             self.utopia.borrow_mut().as_mut().unwrap().request_library();
             //self.utopia.borrow_mut().as_mut().unwrap().request_library();
@@ -104,6 +106,7 @@ impl UtopiaFrontend {
 
 		let diag = gtk::AboutDialogBuilder::new()
 			.authors(authors)
+			.icon_name(config::APP_ID)
 			.comments("GTK frontend to µtopia")
 			.license_type(gtk::License::Agpl30)
 			.wrap_license(true)

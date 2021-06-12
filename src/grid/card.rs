@@ -1,5 +1,3 @@
-use crate::utopia::ItemStatus;
-
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{glib, gio, CompositeTemplate};
@@ -12,6 +10,8 @@ mod imp {
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/card.ui")]
 	pub struct UtopiaCard {
+		pub utopia: once_cell::unsync::OnceCell<utopia_common::library::LibraryItemFrontendDetails>,
+
 		#[template_child]
 		pub frame: TemplateChild<Frame>,
 		#[template_child]
@@ -60,27 +60,12 @@ impl UtopiaCard {
 	pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create UtopiaCard")
     }
-	pub fn init(&self, item: crate::utopia::LibraryItem) {
-		let self_ = imp::UtopiaCard::from_instance(self);
-		let size = 300;
-		let buf = gtk::gdk_pixbuf::Pixbuf::from_file_at_scale(&format!("/home/admin/workspace/Projects/µtopia/data/dbgpic/{}", item.cover), (2*size)/3, size, true).unwrap();
-
-		self_.coverimg.set_pixbuf(Some(&buf));
-
-		self_.title.set_label(&item.title);
-		self_.status.set_label(match item.status {
-			ItemStatus::Running => "Running",
-			ItemStatus::Installed => "Installed",
-			ItemStatus::Downloading => "Downloading",
-			ItemStatus::Updating => "Updating",
-			ItemStatus::Default => "Default"
-		});
-	}
-	pub fn meta(&self, item: utopia_common::library::LibraryItemFrontendDetails, stati: &Vec<utopia_common::library::LibraryItemStatus>) {
+	pub fn init(&self, item: utopia_common::library::LibraryItemFrontendDetails) {
 		self.set_widget_name(&item.uuid);
 		let self_ = imp::UtopiaCard::from_instance(self);
+		self_.utopia.set(item.clone()).expect("Failed initializing card");
 		self_.title.set_label(&item.name);
-		for status in stati {
+		for status in item.active_provider.stati {
 			self_.status.set_label(match status {
 				utopia_common::library::LibraryItemStatus::Running => "Running",
 				utopia_common::library::LibraryItemStatus::Closing => "Closing",
@@ -116,5 +101,24 @@ impl UtopiaCard {
 				_ => {}
 			}
 		}
+	}
+
+	pub fn utopia(&self) -> &utopia_common::library::LibraryItemFrontendDetails{
+		let self_ = imp::UtopiaCard::from_instance(self);
+		self_.utopia.get().unwrap()
+	}
+	pub fn provider(&self, provider: &glib::GString) -> bool {
+		let self_ = imp::UtopiaCard::from_instance(self);
+		for (iprovider, _) in &self_.utopia.get().unwrap().providers {
+			if provider == iprovider {
+				// TODO: set active provider to provider
+				return true;
+			}
+		}
+		false
+	}
+	pub fn name(&self) -> &str {
+		let self_ = imp::UtopiaCard::from_instance(self);
+		&self_.utopia.get().unwrap().name
 	}
 }

@@ -2,6 +2,7 @@ pub mod config;
 pub mod utopia;
 pub mod integration_item;
 pub mod grid;
+mod detail;
 mod uev;
 mod application;
 
@@ -17,7 +18,8 @@ fn main() {
 	resources_register(&res);
 
 	glib::set_application_name("µtopia");
-	glib::set_program_name(Some("µtopia"));
+	glib::set_program_name(Some(&config::APP_ID));
+	gtk::Window::set_default_icon_name(config::APP_ID);
 
 	let provider = CssProvider::new();
 	provider.load_from_resource("/dev/sp1rit/Utopia/utopia.css");
