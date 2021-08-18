@@ -10,7 +10,7 @@ mod imp {
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/card.ui")]
 	pub struct UtopiaCard {
-		pub utopia: once_cell::unsync::OnceCell<utopia_common::library::LibraryItemFrontendDetails>,
+		pub utopia: std::cell::RefCell<Option<utopia_common::library::LibraryItemFrontendDetails>>,
 
 		#[template_child]
 		pub frame: TemplateChild<Frame>,
@@ -63,11 +63,11 @@ impl UtopiaCard {
 	pub fn init(&self, item: utopia_common::library::LibraryItemFrontendDetails) {
 		self.set_widget_name(&item.uuid);
 		let self_ = imp::UtopiaCard::from_instance(self);
-		self_.utopia.set(item.clone()).expect("Failed initializing card");
+		self_.utopia.replace(Some(item.clone()));
 		self_.title.set_label(&item.name);
 		for status in item.active_provider.stati {
 			self_.status.set_label(match status {
-				utopia_common::library::LibraryItemStatus::Running => "Running",
+				utopia_common::library::LibraryItemStatus::Running(_pid) => "Running",
 				utopia_common::library::LibraryItemStatus::Closing => "Closing",
 				utopia_common::library::LibraryItemStatus::Updatable => "Update available",
 				utopia_common::library::LibraryItemStatus::Updating => "Updating",
@@ -103,13 +103,18 @@ impl UtopiaCard {
 		}
 	}
 
-	pub fn utopia(&self) -> &utopia_common::library::LibraryItemFrontendDetails{
+	pub fn utopia(&self) -> std::cell::Ref<utopia_common::library::LibraryItemFrontendDetails> {
 		let self_ = imp::UtopiaCard::from_instance(self);
-		self_.utopia.get().unwrap()
+		let a = self_.utopia.borrow();
+		let b: std::cell::Ref<utopia_common::library::LibraryItemFrontendDetails> = std::cell::Ref::map(a, |inner| {
+			let details = inner.as_ref().unwrap();
+			details
+		});
+		b
+		//a.as_ref().unwrap()
 	}
 	pub fn provider(&self, provider: &glib::GString) -> bool {
-		let self_ = imp::UtopiaCard::from_instance(self);
-		for (iprovider, _) in &self_.utopia.get().unwrap().providers {
+		for (iprovider, _) in &self.utopia().providers {
 			if provider == iprovider {
 				// TODO: set active provider to provider
 				return true;
@@ -117,8 +122,29 @@ impl UtopiaCard {
 		}
 		false
 	}
-	pub fn name(&self) -> &str {
+	pub fn name(&self) -> String {
+		self.utopia().name.clone()
+	}
+
+	pub fn update(&self, item: utopia_common::library::LibraryItemFrontend) {
 		let self_ = imp::UtopiaCard::from_instance(self);
-		&self_.utopia.get().unwrap().name
+		self_.title.set_label(&item.name);
+		for status in item.active_provider.stati.clone() {
+			self_.status.set_label(match status {
+				utopia_common::library::LibraryItemStatus::Running(_pid) => "Running",
+				utopia_common::library::LibraryItemStatus::Closing => "Closing",
+				utopia_common::library::LibraryItemStatus::Updatable => "Update available",
+				utopia_common::library::LibraryItemStatus::Updating => "Updating",
+				utopia_common::library::LibraryItemStatus::Installed => "Installed"
+			});
+		}
+		let mut utopia = self_.utopia.borrow_mut();
+		if let Some(details) = utopia.as_mut() {
+			details.name = item.name;
+			details.kind = item.kind;
+			details.active_provider = item.active_provider;
+			details.providers = item.providers;
+		}
+
 	}
 }

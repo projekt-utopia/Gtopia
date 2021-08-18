@@ -11,6 +11,7 @@ pub struct SocketStream {
     terminated: bool
 }
 impl SocketStream {
+	#[allow(dead_code)]
 	pub async fn new<P>(path: P) -> std::io::Result<Self>
 	where
 		P: AsRef<std::path::Path>
@@ -26,6 +27,7 @@ impl SocketStream {
 			terminated: false
 		}
 	}
+	#[allow(dead_code)]
 	pub async fn block_writeable(&self) -> std::io::Result<()> {
 		self.inner.writable().await?;
 		Ok(())

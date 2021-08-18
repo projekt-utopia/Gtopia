@@ -18,6 +18,8 @@ mod imp {
 		pub sender: once_cell::unsync::OnceCell<futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>>,
 		//pub dsender: once_cell::unsync::OnceCell<glib::Sender<Option<utopia_common::library::LibraryItemFrontendDetails>>>,
 
+		pub items: std::cell::RefCell<std::collections::HashMap<String, card::UtopiaCard>>,
+
 		#[template_child]
 		pub grid: TemplateChild<FlowBox>,
 	}
@@ -76,11 +78,13 @@ impl UtopiaGrid {
 
 		/* probably the worst sort function known to mankind */
 		self_.grid.set_sort_func(move |b, n| {
-			let bname = b.downcast_ref::<card::UtopiaCard>().unwrap().name().chars();
-			let mut nname = n.downcast_ref::<card::UtopiaCard>().unwrap().name().chars();
-			for r#char in bname {
+			let bname = b.downcast_ref::<card::UtopiaCard>().unwrap().name();
+			let bchars = bname.chars();
+			let nname = n.downcast_ref::<card::UtopiaCard>().unwrap().name();
+			let mut nchars = nname.chars();
+			for r#char in bchars {
 				let bint = r#char.to_ascii_uppercase() as u32;
-				let nint = match nname.next() {
+				let nint = match nchars.next() {
 					Some(int) => int.to_ascii_uppercase() as u32,
 					None => return 1
 				};
@@ -102,9 +106,17 @@ impl UtopiaGrid {
 		//self_.dsender.set(dsender).expect("Failed setting up UtopiaGrid");
 		self.setup_trigger(dsender);
 	}
-	pub fn insert_card(&self, card: &card::UtopiaCard) {
+	pub fn insert_card(&self, uuid: String, card: &card::UtopiaCard) {
 		let self_ = imp::UtopiaGrid::from_instance(self);
+		self_.items.borrow_mut().insert(uuid, card.clone());
 		self_.grid.insert(card, -1);
+	}
+
+	pub fn update_card(&self, uuid: &String, item: utopia_common::library::LibraryItemFrontend) {
+		let self_ = imp::UtopiaGrid::from_instance(self);
+		if let Some(card) = self_.items.borrow().get(uuid) {
+			card.update(item);
+		}
 	}
 
 	pub fn update_filter(&self, module: std::cell::Ref<Option<glib::GString>>, search: glib::GString) {

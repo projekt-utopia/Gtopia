@@ -37,6 +37,7 @@ pub enum UtopiaRequest {
 #[derive(Debug)]
 pub enum UtopiaMessage {
 	RefreshGameLibrary(Vec<utopia::library::LibraryItemFrontendDetails>),
+	UpdateGame(utopia::library::LibraryItemFrontend),
 	Disconnect
 }
 
@@ -105,6 +106,9 @@ impl UtopiaEvents {
 											utopia::CoreActions::ResponseFullGameLibrary(library) => {
 												send!(sender, UtopiaMessage::RefreshGameLibrary(library))
 											},
+											utopia::CoreActions::ResponseGameUpdate(item) => {
+												send!(sender, UtopiaMessage::UpdateGame(item))
+											},
 											_ => println!("Something else: {:?}", ev.action)
 										}
 									},
@@ -160,7 +164,7 @@ impl UtopiaEvents {
 	}
 }
 
-pub fn handle_event(event: UtopiaMessage, channel: mpsc::Sender<UtopiaRequest>, window: crate::utopia::UtopiaWindow) -> gtk::glib::Continue {
+pub fn handle_event(event: UtopiaMessage, _channel: mpsc::Sender<UtopiaRequest>, window: crate::utopia::UtopiaWindow) -> gtk::glib::Continue {
 	println!("New msg: {:?}", event);
 	match event {
 		UtopiaMessage::Disconnect => {
@@ -180,8 +184,12 @@ pub fn handle_event(event: UtopiaMessage, channel: mpsc::Sender<UtopiaRequest>, 
 			for item in library {
 				//channel.try_send(UtopiaRequest::GetGameDetails(item.uuid)).unwrap();
 				//println!("Item: {:?}", item);
+
 				window.new_item(item);
 			}
+		},
+		UtopiaMessage::UpdateGame(item) => {
+			window.update_item(item);
 		}
 	};
 	gtk::glib::Continue(true)

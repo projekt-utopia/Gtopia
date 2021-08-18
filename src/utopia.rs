@@ -26,7 +26,7 @@ pub mod imp {
 	use super::*;
 	use libadwaita::{subclass::prelude::*, ApplicationWindow, Leaflet};
 
-	use gtk::{ToggleButton, Button, Revealer, SearchEntry, Box, ListBox, Stack};
+	use gtk::{ToggleButton, Button, Revealer, SearchEntry, Box, ListBox};
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/window.ui")]
 	pub struct UtopiaWindow {
@@ -273,7 +273,7 @@ impl UtopiaWindow {
 		let mut integrations = self_.integrations.borrow_mut();
 		let card = crate::grid::card::UtopiaCard::new();
 				card.init(item.clone());
-		self_.library.insert_card(&card);
+		self_.library.insert_card(item.uuid, &card);
 		for (uuid, iprov) in &item.providers {
 			if !integrations.contains(uuid) {
 				let item = UtopiaIntegrationItem::new();
@@ -283,5 +283,10 @@ impl UtopiaWindow {
 				integrations.push(uuid.to_owned());
 			}
 		}
+	}
+
+	pub fn update_item(&self, item: utopia_common::library::LibraryItemFrontend) {
+		let self_ = imp::UtopiaWindow::from_instance(self);
+		self_.library.update_card(&item.uuid.clone(), item);
 	}
 }
