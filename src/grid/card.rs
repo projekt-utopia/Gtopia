@@ -1,11 +1,9 @@
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{glib, gio, CompositeTemplate};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 mod imp {
-	use super::*;
+	use gtk::{FlowBoxChild, Frame, Label, Overlay, Picture};
 
-	use gtk::{FlowBoxChild, Frame, Overlay, Picture, Label};
+	use super::*;
 
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/card.ui")]
@@ -27,9 +25,10 @@ mod imp {
 
 	#[glib::object_subclass]
 	impl ObjectSubclass for UtopiaCard {
-		const NAME: &'static str = "UtopiaCard";
-		type Type = super::UtopiaCard;
 		type ParentType = FlowBoxChild;
+		type Type = super::UtopiaCard;
+
+		const NAME: &'static str = "UtopiaCard";
 
 		fn class_init(klass: &mut Self::Class) {
 			Self::bind_template(klass);
@@ -58,8 +57,9 @@ glib::wrapper! {
 
 impl UtopiaCard {
 	pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create UtopiaCard")
-    }
+		glib::Object::new(&[]).expect("Failed to create UtopiaCard")
+	}
+
 	pub fn init(&self, item: utopia_common::library::LibraryItemFrontendDetails) {
 		self.set_widget_name(&item.uuid);
 		let self_ = imp::UtopiaCard::from_instance(self);
@@ -76,26 +76,46 @@ impl UtopiaCard {
 		}
 		let size = 300;
 		if item.details.artworks.len() == 0 {
-			self_.coverimg.set_pixbuf(Some(&gtk::gdk_pixbuf::Pixbuf::from_resource_at_scale("/dev/sp1rit/Utopia/artwork.svg", (2*size)/3, size, true).unwrap()));
+			self_.coverimg.set_pixbuf(Some(
+				&gtk::gdk_pixbuf::Pixbuf::from_resource_at_scale(
+					"/dev/sp1rit/Utopia/artwork.svg",
+					(2 * size) / 3,
+					size,
+					true
+				)
+				.unwrap()
+			));
 		}
 		for artwork in item.details.artworks {
 			match artwork.r#type {
 				utopia_common::library::artwork::ArtworkType::CaseCover => {
 					let buf = match artwork.data {
-						utopia_common::library::artwork::ArtworkData::Data(data, has_alpha, bits_per_sample, width, height, rowstride) => {
-							gtk::gdk_pixbuf::Pixbuf::from_bytes(&gtk::glib::Bytes::from(&data), gtk::gdk_pixbuf::Colorspace::Rgb, has_alpha, bits_per_sample, width, height, rowstride)
-						},
+						utopia_common::library::artwork::ArtworkData::Data(
+							data,
+							has_alpha,
+							bits_per_sample,
+							width,
+							height,
+							rowstride
+						) => gtk::gdk_pixbuf::Pixbuf::from_bytes(
+							&gtk::glib::Bytes::from(&data),
+							gtk::gdk_pixbuf::Colorspace::Rgb,
+							has_alpha,
+							bits_per_sample,
+							width,
+							height,
+							rowstride
+						),
 						utopia_common::library::artwork::ArtworkData::Uri(_uri) => {
 							//unimplemented!();
 							gtk::gdk_pixbuf::Pixbuf::from_resource("/dev/sp1rit/Utopia/artwork.svg").unwrap()
 						},
-						utopia_common::library::artwork::ArtworkData::Path(path) => {
-							gtk::gdk_pixbuf::Pixbuf::from_file(path).unwrap_or(
-								gtk::gdk_pixbuf::Pixbuf::from_resource("/dev/sp1rit/Utopia/artwork.svg").unwrap()
-							)
-						}
+						utopia_common::library::artwork::ArtworkData::Path(path) => gtk::gdk_pixbuf::Pixbuf::from_file(
+							path
+						)
+						.unwrap_or(gtk::gdk_pixbuf::Pixbuf::from_resource("/dev/sp1rit/Utopia/artwork.svg").unwrap())
 					};
-					let buf = buf.scale_simple((2*size)/3, size, gtk::gdk_pixbuf::InterpType::Bilinear);
+					let buf = buf.scale_simple((2 * size) / 3, size, gtk::gdk_pixbuf::InterpType::Bilinear);
 					self_.coverimg.set_pixbuf(buf.as_ref());
 				},
 				_ => {}
@@ -113,6 +133,7 @@ impl UtopiaCard {
 		b
 		//a.as_ref().unwrap()
 	}
+
 	pub fn provider(&self, provider: &glib::GString) -> bool {
 		for (iprovider, _) in &self.utopia().providers {
 			if provider == iprovider {
@@ -122,6 +143,7 @@ impl UtopiaCard {
 		}
 		false
 	}
+
 	pub fn name(&self) -> String {
 		self.utopia().name.clone()
 	}
@@ -145,6 +167,5 @@ impl UtopiaCard {
 			details.active_provider = item.active_provider;
 			details.providers = item.providers;
 		}
-
 	}
 }

@@ -1,11 +1,9 @@
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{glib, gio, CompositeTemplate};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 mod imp {
-	use super::*;
+	use gtk::{Box, Button, ComboBox, Label, Picture};
 
-	use gtk::{Box, Picture, Label, ComboBox, Button};
+	use super::*;
 
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/detail.ui")]
@@ -26,14 +24,15 @@ mod imp {
 		#[template_child]
 		pub hide_btn: TemplateChild<Button>,
 		#[template_child]
-		pub primary_btn: TemplateChild<Button>,
+		pub primary_btn: TemplateChild<Button>
 	}
 
 	#[glib::object_subclass]
 	impl ObjectSubclass for UtopiaDetail {
-		const NAME: &'static str = "UtopiaDetail";
-		type Type = super::UtopiaDetail;
 		type ParentType = Box;
+		type Type = super::UtopiaDetail;
+
+		const NAME: &'static str = "UtopiaDetail";
 
 		fn class_init(klass: &mut Self::Class) {
 			Self::bind_template(klass);
@@ -63,60 +62,72 @@ glib::wrapper! {
 
 impl UtopiaDetail {
 	pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create UtopiaDetail")
-    }
+		glib::Object::new(&[]).expect("Failed to create UtopiaDetail")
+	}
 
-    pub fn setup_triggers(&self) {
-    	let self_ = imp::UtopiaDetail::from_instance(self);
-    	self_.hide_btn.connect_clicked(glib::clone!(@weak self as detail => move |_| {
-    		detail.set_visible(false);
-    	}));
-    }
+	pub fn setup_triggers(&self) {
+		let self_ = imp::UtopiaDetail::from_instance(self);
+		self_
+			.hide_btn
+			.connect_clicked(glib::clone!(@weak self as detail => move |_| {
+				detail.set_visible(false);
+			}));
+	}
 
-    pub fn init_triggers(&self) {
-    	let self_ = imp::UtopiaDetail::from_instance(self);
-    	let current_uuid = self_.current_uuid.clone();
-    	let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
-    	self_.primary_btn.connect_clicked(move |_| {
-    		if let Some(uuid) = current_uuid.borrow().as_ref() {
-    			if let Err(e) = sender.write().unwrap().get_mut().unwrap().
-    			  try_send(crate::uev::UtopiaRequest::TriggerLaunch(uuid.into())) {
-    				eprintln!("Error requesting {} to launch: {}", uuid, e);
-    			}
-    		}
-    	});
+	pub fn init_triggers(&self) {
+		let self_ = imp::UtopiaDetail::from_instance(self);
+		let current_uuid = self_.current_uuid.clone();
+		let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
+		self_.primary_btn.connect_clicked(move |_| {
+			if let Some(uuid) = current_uuid.borrow().as_ref() {
+				if let Err(e) = sender
+					.write()
+					.unwrap()
+					.get_mut()
+					.unwrap()
+					.try_send(crate::uev::UtopiaRequest::TriggerLaunch(uuid.into()))
+				{
+					eprintln!("Error requesting {} to launch: {}", uuid, e);
+				}
+			}
+		});
 
-    	let current_uuid = self_.current_uuid.clone();
-    	let current_module = self_.current_module.clone();
-    	let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
-    	self_.dinfos.connect_changed(move |infos| {
-    		if let Some(active) = infos.active_id() {
+		let current_uuid = self_.current_uuid.clone();
+		let current_module = self_.current_module.clone();
+		let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
+		self_.dinfos.connect_changed(move |infos| {
+			if let Some(active) = infos.active_id() {
 				if let Some(uuid) = current_uuid.borrow().as_ref() {
-				if let Some(provider_uuid) = current_module.borrow().as_ref() {
-					if provider_uuid != &active {
-						if let Err(e) = sender.write().unwrap().get_mut().unwrap().
-						  try_send(crate::uev::UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())) {
-							eprintln!("Error requesting {} to launch: {}", provider_uuid, e);
+					if let Some(provider_uuid) = current_module.borrow().as_ref() {
+						if provider_uuid != &active {
+							if let Err(e) = sender.write().unwrap().get_mut().unwrap().try_send(
+								crate::uev::UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())
+							) {
+								eprintln!("Error requesting {} to launch: {}", provider_uuid, e);
+							}
 						}
 					}
 				}
-				}
 				current_module.replace(Some(active.into()));
-    		}
-    	});
-    }
+			}
+		});
+	}
 
-    pub fn init(&self, sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>, listener: glib::Receiver<crate::grid::SidebarMsg>) {
-    	let self_ = imp::UtopiaDetail::from_instance(self);
-    	self_.sender.set(sender).expect("Failed setting up UtopiaDetail");
-    	let cover = self_.cover.get();
-    	let name = self_.name.get();
-    	let uuid = self_.uuid.get();
-    	let info = self_.dinfos.get();
-    	let current_uuid = self_.current_uuid.clone();
-    	let current_module = self_.current_module.clone();
-    	let primary_btn = self_.primary_btn.get();
-    	listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info, @weak primary_btn => @default-return glib::Continue(false), move |msg| {
+	pub fn init(
+		&self,
+		sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>,
+		listener: glib::Receiver<crate::grid::SidebarMsg>
+	) {
+		let self_ = imp::UtopiaDetail::from_instance(self);
+		self_.sender.set(sender).expect("Failed setting up UtopiaDetail");
+		let cover = self_.cover.get();
+		let name = self_.name.get();
+		let uuid = self_.uuid.get();
+		let info = self_.dinfos.get();
+		let current_uuid = self_.current_uuid.clone();
+		let current_module = self_.current_module.clone();
+		let primary_btn = self_.primary_btn.get();
+		listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info, @weak primary_btn => @default-return glib::Continue(false), move |msg| {
     		match msg.item {
     			Some(item) => {
     				if msg.action == crate::grid::SidebarMsgAction::Update && current_uuid.borrow().as_ref() != Some(item.uuid.clone()).as_ref() {
@@ -184,6 +195,6 @@ impl UtopiaDetail {
     		};
     		glib::Continue(true)
     	}));
-    	self.init_triggers();
-    }
+		self.init_triggers();
+	}
 }

@@ -1,11 +1,9 @@
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{glib, gio, CompositeTemplate};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 mod imp {
-	use super::*;
+	use gtk::{Image, Label, ListBoxRow};
 
-	use gtk::{ListBoxRow, Image, Label};
+	use super::*;
 
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/integration_item.ui")]
@@ -15,14 +13,15 @@ mod imp {
 		#[template_child]
 		pub name: TemplateChild<Label>,
 		#[template_child]
-		pub uuid: TemplateChild<Label>,
+		pub uuid: TemplateChild<Label>
 	}
 
 	#[glib::object_subclass]
 	impl ObjectSubclass for UtopiaIntegrationItem {
-		const NAME: &'static str = "UtopiaIntegrationItem";
-		type Type = super::UtopiaIntegrationItem;
 		type ParentType = ListBoxRow;
+		type Type = super::UtopiaIntegrationItem;
+
+		const NAME: &'static str = "UtopiaIntegrationItem";
 
 		fn class_init(klass: &mut Self::Class) {
 			Self::bind_template(klass);
@@ -51,8 +50,9 @@ glib::wrapper! {
 
 impl UtopiaIntegrationItem {
 	pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create UtopiaIntegrationItem")
-    }
+		glib::Object::new(&[]).expect("Failed to create UtopiaIntegrationItem")
+	}
+
 	pub fn init(&self, uuid: &str, name: &str, icon: Option<&str>) {
 		let self_ = imp::UtopiaIntegrationItem::from_instance(self);
 		self_.name.set_label(name);

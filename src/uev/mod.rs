@@ -1,27 +1,25 @@
 mod stream;
 
-use crate::config::APP_ID;
+use std::{sync::{Arc, Mutex},
+          thread};
 
 use utopia_common::frontend as utopia;
-
-use tokio::{runtime::Runtime, io::{AsyncReadExt, AsyncWriteExt}};
-use futures::{stream::StreamExt, channel::mpsc};
-
+use tokio::{io::{AsyncReadExt, AsyncWriteExt},
+            runtime::Runtime};
+use futures::{channel::mpsc, stream::StreamExt};
 use libadwaita::prelude::*;
 //use gtk::prelude::*;
+use gtk::glib::{MainContext, Receiver, Sender, PRIORITY_DEFAULT};
 
-use gtk::glib::{Receiver, Sender, MainContext, PRIORITY_DEFAULT};
-
-use std::thread;
-use std::sync::{Arc, Mutex};
+use crate::config::APP_ID;
 
 macro_rules! send {
-    ($sender:expr, $msg:expr) => {
-        if let Err(e) = $sender.send($msg) {
-            eprintln!("Channel died, closing loop: {}", e);
-            return;
-        }
-    }
+	($sender:expr, $msg:expr) => {
+		if let Err(e) = $sender.send($msg) {
+			eprintln!("Channel died, closing loop: {}", e);
+			return;
+		}
+	};
 }
 
 #[derive(Debug)]
@@ -52,11 +50,15 @@ impl UtopiaEvents {
 	pub fn new() -> (Self, mpsc::Sender<UtopiaRequest>, Receiver<UtopiaMessage>) {
 		let (tcx, rcx) = mpsc::channel(0xF);
 		let (tx, rx) = MainContext::channel(PRIORITY_DEFAULT);
-		(Self {
-			sender: tx,
-			channel: tcx.clone(),
-			receiver: Arc::new(Mutex::new(rcx))
-		}, tcx, rx)
+		(
+			Self {
+				sender: tx,
+				channel: tcx.clone(),
+				receiver: Arc::new(Mutex::new(rcx))
+			},
+			tcx,
+			rx
+		)
 	}
 
 	pub fn start(&self) {
@@ -164,7 +166,11 @@ impl UtopiaEvents {
 	}
 }
 
-pub fn handle_event(event: UtopiaMessage, _channel: mpsc::Sender<UtopiaRequest>, window: crate::utopia::UtopiaWindow) -> gtk::glib::Continue {
+pub fn handle_event(
+	event: UtopiaMessage,
+	_channel: mpsc::Sender<UtopiaRequest>,
+	window: crate::utopia::UtopiaWindow
+) -> gtk::glib::Continue {
 	println!("New msg: {:?}", event);
 	match event {
 		UtopiaMessage::Disconnect => {
@@ -172,9 +178,7 @@ pub fn handle_event(event: UtopiaMessage, _channel: mpsc::Sender<UtopiaRequest>,
 				.label("Failed communicating with the µtopia daemon, please restart.")
 				.hexpand(true)
 				.build();
-			let container = gtk::BoxBuilder::new()
-				.orientation(gtk::Orientation::Vertical)
-				.build();
+			let container = gtk::BoxBuilder::new().orientation(gtk::Orientation::Vertical).build();
 			gtk::prelude::BoxExt::append(&container, &label);
 			window.set_child(Some(&container));
 			return gtk::glib::Continue(false);
@@ -182,8 +186,8 @@ pub fn handle_event(event: UtopiaMessage, _channel: mpsc::Sender<UtopiaRequest>,
 		UtopiaMessage::RefreshGameLibrary(library) => {
 			//println!("Library: {:#?}", library);
 			for item in library {
-				//channel.try_send(UtopiaRequest::GetGameDetails(item.uuid)).unwrap();
-				//println!("Item: {:?}", item);
+				//channel.try_send(UtopiaRequest::GetGameDetails(item.uuid)).
+				// unwrap(); println!("Item: {:?}", item);
 
 				window.new_item(item);
 			}

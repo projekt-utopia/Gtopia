@@ -1,14 +1,14 @@
-use crate::{integration_item::UtopiaIntegrationItem, grid::UtopiaGrid};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{glib, gio, CompositeTemplate};
-
-use gtk::glib::{clone, BindingFlags};
-
+use gtk::{gio,
+          glib,
+          glib::{clone, BindingFlags},
+          prelude::*,
+          subclass::prelude::*,
+          CompositeTemplate};
 use libadwaita::{ApplicationWindow, NavigationDirection};
 
-use std::{rc::Rc, cell::RefCell, collections::HashMap};
+use crate::{grid::UtopiaGrid, integration_item::UtopiaIntegrationItem};
 
 #[derive(Debug, PartialEq)]
 pub enum LeafletFoci {
@@ -23,10 +23,10 @@ impl Default for LeafletFoci {
 }
 
 pub mod imp {
-	use super::*;
 	use libadwaita::{subclass::prelude::*, ApplicationWindow, Leaflet};
+	use gtk::{Box, Button, ListBox, Revealer, SearchEntry, ToggleButton};
 
-	use gtk::{ToggleButton, Button, Revealer, SearchEntry, Box, ListBox};
+	use super::*;
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/window.ui")]
 	pub struct UtopiaWindow {
@@ -66,9 +66,10 @@ pub mod imp {
 
 	#[glib::object_subclass]
 	impl ObjectSubclass for UtopiaWindow {
-		const NAME: &'static str = "UtopiaWindow";
-		type Type = super::UtopiaWindow;
 		type ParentType = ApplicationWindow;
+		type Type = super::UtopiaWindow;
+
+		const NAME: &'static str = "UtopiaWindow";
 
 		fn class_init(klass: &mut Self::Class) {
 			Self::bind_template(klass);
@@ -90,8 +91,8 @@ pub mod imp {
 			obj.setup_sidebar();
 			//obj.populate();
 
-			// TODO: this does not seem to work, as row select is called during init
-			// self.leaflet.set_visible_child(&self.sidebar.get());
+			// TODO: this does not seem to work, as row select is called during
+			// init self.leaflet.set_visible_child(&self.sidebar.get());
 
 			self.parent_constructed(obj);
 		}
@@ -119,29 +120,32 @@ impl UtopiaWindow {
 		let self_ = imp::UtopiaWindow::from_instance(self);
 
 		self_
-			.search.connect_search_changed(clone!(@weak self as utopia => move |_| {
+			.search
+			.connect_search_changed(clone!(@weak self as utopia => move |_| {
 				utopia.update_filter();
 			}));
 		self_
-			.search_btn.bind_property("active", &self_.search_revealer.get(), "reveal-child")
+			.search_btn
+			.bind_property("active", &self_.search_revealer.get(), "reveal-child")
 			.flags(BindingFlags::SYNC_CREATE | BindingFlags::BIDIRECTIONAL)
 			.build();
 
 		let search: gtk::SearchEntry = self_.search.get();
-		self_
-			.search_btn.connect_toggled(clone!(@weak search => move |btn| {
-				if btn.is_active() {
-					search.grab_focus();
-				} else {
-					search.set_text("");
-				}
-			}));
+		self_.search_btn.connect_toggled(clone!(@weak search => move |btn| {
+			if btn.is_active() {
+				search.grab_focus();
+			} else {
+				search.set_text("");
+			}
+		}));
 	}
 
 	pub fn setup_sidebar(&self) {
 		let self_ = imp::UtopiaWindow::from_instance(self);
-		//let ibuf = gtk::IconPaintable::for_file(&gtk::gio::File::for_path("/home/admin/workspace/Projects/µtopia/data/utopia-symbolic.png"), 512, 512);
-		//println!("Iconsymb: {:?}", ibuf.is_symbolic());
+		//let ibuf =
+		// gtk::IconPaintable::for_file(&gtk::gio::File::for_path("/home/
+		// admin/workspace/Projects/µtopia/data/utopia-symbolic.png"), 512,
+		// 512); println!("Iconsymb: {:?}", ibuf.is_symbolic());
 		let icon = gtk::ImageBuilder::new()
 			.icon_size(gtk::IconSize::Large)
 			//.resource("/dev/sp1rit/Utopia/utopia.svg")
@@ -159,9 +163,7 @@ impl UtopiaWindow {
 			.margin_start(8)
 			.margin_end(8)
 			.build();
-		let r#box = gtk::BoxBuilder::new()
-			.orientation(gtk::Orientation::Horizontal)
-			.build();
+		let r#box = gtk::BoxBuilder::new().orientation(gtk::Orientation::Horizontal).build();
 		r#box.append(&icon);
 		r#box.append(&label);
 		let all = gtk::ListBoxRowBuilder::new()
@@ -207,41 +209,46 @@ impl UtopiaWindow {
 		let leaflet_back = self_.leaflet_back.get();
 		//let game_leaflet = self_.game_leaflet.get();
 		let lfoci = self_.lfoci.clone();
-		self_.leaflet.connect_folded_notify(clone!(@weak leaflet, @weak leaflet_back, @weak sidebar_header /*@weak game_leaflet*/ =>
-			move |_| {
-				let state = leaflet.is_folded();
-				leaflet_back.set_visible(state);
-				sidebar_header.set_show_title_buttons(state);
-				// it might be better to use game_leaflet.is_folded() rather then state
-				// but it looks wierd if you go back
-				if !state && lfoci.take() == LeafletFoci::Details {
-					lfoci.replace(LeafletFoci::Library);
+		self_.leaflet.connect_folded_notify(
+			clone!(@weak leaflet, @weak leaflet_back, @weak sidebar_header /*@weak game_leaflet*/ =>
+				move |_| {
+					let state = leaflet.is_folded();
+					leaflet_back.set_visible(state);
+					sidebar_header.set_show_title_buttons(state);
+					// it might be better to use game_leaflet.is_folded() rather then state
+					// but it looks wierd if you go back
+					if !state && lfoci.take() == LeafletFoci::Details {
+						lfoci.replace(LeafletFoci::Library);
+					}
 				}
-			}
-		));
+			)
+		);
 
 		let leafleat = self_.leaflet.get();
 		let lfoci = self_.lfoci.clone();
-		self_.leaflet_back.connect_clicked(clone!(@weak leafleat, @weak game_leaflet, @weak detail =>
-			move |_| {
-				match lfoci.take() {
-					LeafletFoci::Providers => {},
-					LeafletFoci::Library => {
-						leafleat.navigate(NavigationDirection::Back);
-						lfoci.replace(LeafletFoci::Providers);
-					},
-					LeafletFoci::Details => {
-						/*game_leaflet.set_visible_child(&library);
-						lfoci.replace(LeafletFoci::Library);*/
-						detail.set_visible(false);
+		self_
+			.leaflet_back
+			.connect_clicked(clone!(@weak leafleat, @weak game_leaflet, @weak detail =>
+				move |_| {
+					match lfoci.take() {
+						LeafletFoci::Providers => {},
+						LeafletFoci::Library => {
+							leafleat.navigate(NavigationDirection::Back);
+							lfoci.replace(LeafletFoci::Providers);
+						},
+						LeafletFoci::Details => {
+							/*game_leaflet.set_visible_child(&library);
+							lfoci.replace(LeafletFoci::Library);*/
+							detail.set_visible(false);
+						}
 					}
 				}
-			}
-		));
+			));
 
 		let lfoci = self_.lfoci.clone();
 		self_
-			.detail.connect_visible_notify(glib::clone!(@weak game_leaflet, @weak library => move |detail| {
+			.detail
+			.connect_visible_notify(glib::clone!(@weak game_leaflet, @weak library => move |detail| {
 				if detail.get_visible() {
 					game_leaflet.navigate(NavigationDirection::Forward);
 					//set_visible_child(detail);
@@ -272,13 +279,13 @@ impl UtopiaWindow {
 		let self_ = imp::UtopiaWindow::from_instance(self);
 		let mut integrations = self_.integrations.borrow_mut();
 		let card = crate::grid::card::UtopiaCard::new();
-				card.init(item.clone());
+		card.init(item.clone());
 		self_.library.insert_card(item.uuid, &card);
 		for (uuid, iprov) in &item.providers {
 			if !integrations.contains(uuid) {
 				let item = UtopiaIntegrationItem::new();
-					item.init(&uuid, &iprov.name, iprov.icon.as_deref());
-					item.set_widget_name(&uuid);
+				item.init(&uuid, &iprov.name, iprov.icon.as_deref());
+				item.set_widget_name(&uuid);
 				self_.module.append(&item);
 				integrations.push(uuid.to_owned());
 			}

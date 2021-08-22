@@ -1,9 +1,6 @@
 pub mod card;
 
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{glib, gio, CompositeTemplate};
-
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use libadwaita::subclass::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,7 +15,11 @@ pub struct SidebarMsg {
 	pub action: SidebarMsgAction
 }
 impl SidebarMsg {
-	pub fn new(item: Option<utopia_common::library::LibraryItemFrontendDetails>, active_module: Option<glib::GString>, action: SidebarMsgAction) -> Self {
+	pub fn new(
+		item: Option<utopia_common::library::LibraryItemFrontendDetails>,
+		active_module: Option<glib::GString>,
+		action: SidebarMsgAction
+	) -> Self {
 		SidebarMsg {
 			item,
 			active_module,
@@ -28,10 +29,10 @@ impl SidebarMsg {
 }
 
 mod imp {
-	use super::*;
-
 	use libadwaita::Bin;
 	use gtk::FlowBox;
+
+	use super::*;
 
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/grid.ui")]
@@ -43,14 +44,15 @@ mod imp {
 		pub active_module: std::cell::RefCell<Option<glib::GString>>,
 
 		#[template_child]
-		pub grid: TemplateChild<FlowBox>,
+		pub grid: TemplateChild<FlowBox>
 	}
 
 	#[glib::object_subclass]
 	impl ObjectSubclass for UtopiaGrid {
-		const NAME: &'static str = "UtopiaGrid";
-		type Type = super::UtopiaGrid;
 		type ParentType = Bin;
+		type Type = super::UtopiaGrid;
+
+		const NAME: &'static str = "UtopiaGrid";
 
 		fn class_init(klass: &mut Self::Class) {
 			Self::bind_template(klass);
@@ -81,11 +83,18 @@ impl UtopiaGrid {
 	pub fn new() -> Self {
 		glib::Object::new(&[]).expect("Failed to create UtopiaGrid")
 	}
+
 	pub fn setup_trigger(&self, dsender: glib::Sender<SidebarMsg>) {
 		let self_ = imp::UtopiaGrid::from_instance(self);
 		let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
 		self_.grid.connect_child_activated(move |_, child| {
-			if let Err(e) = sender.write().unwrap().get_mut().unwrap().try_send(crate::uev::UtopiaRequest::TriggerLaunch(child.widget_name().into())) {
+			if let Err(e) = sender
+				.write()
+				.unwrap()
+				.get_mut()
+				.unwrap()
+				.try_send(crate::uev::UtopiaRequest::TriggerLaunch(child.widget_name().into()))
+			{
 				eprintln!("Error requesting {} to launch: {}", child.widget_name(), e);
 			}
 		});
@@ -96,7 +105,9 @@ impl UtopiaGrid {
 				Some(child) => Some(child.downcast_ref::<card::UtopiaCard>().unwrap().utopia().clone()),
 				None => None
 			};
-			dsender.send(SidebarMsg::new(item, module.clone(), SidebarMsgAction::Trigger)).unwrap()
+			dsender
+				.send(SidebarMsg::new(item, module.clone(), SidebarMsgAction::Trigger))
+				.unwrap()
 		});
 
 		/* probably the worst sort function known to mankind */
@@ -123,12 +134,20 @@ impl UtopiaGrid {
 		});
 	}
 
-	pub fn init(&self, sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>, dsender: glib::Sender<SidebarMsg>) {
+	pub fn init(
+		&self,
+		sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>,
+		dsender: glib::Sender<SidebarMsg>
+	) {
 		let self_ = imp::UtopiaGrid::from_instance(self);
 		self_.sender.set(sender).expect("Failed setting up UtopiaGrid");
-		self_.dsender.set(dsender.clone()).expect("Failed setting up UtopiaGrid");
+		self_
+			.dsender
+			.set(dsender.clone())
+			.expect("Failed setting up UtopiaGrid");
 		self.setup_trigger(dsender);
 	}
+
 	pub fn insert_card(&self, uuid: String, card: &card::UtopiaCard) {
 		let self_ = imp::UtopiaGrid::from_instance(self);
 		self_.items.borrow_mut().insert(uuid, card.clone());
@@ -139,13 +158,16 @@ impl UtopiaGrid {
 		let self_ = imp::UtopiaGrid::from_instance(self);
 		if let Some(card) = self_.items.borrow().get(uuid) {
 			card.update(item);
-			self_.dsender.get().unwrap().send(
-				SidebarMsg::new(
+			self_
+				.dsender
+				.get()
+				.unwrap()
+				.send(SidebarMsg::new(
 					Some(card.utopia().clone()),
 					self_.active_module.borrow().clone(),
 					SidebarMsgAction::Update
-				)
-			).unwrap();
+				))
+				.unwrap();
 		}
 	}
 
@@ -164,7 +186,12 @@ impl UtopiaGrid {
 				}
 			}
 			if search != "" {
-				return card.downcast_ref::<card::UtopiaCard>().unwrap().name().to_uppercase().contains(&search.to_uppercase());
+				return card
+					.downcast_ref::<card::UtopiaCard>()
+					.unwrap()
+					.name()
+					.to_uppercase()
+					.contains(&search.to_uppercase());
 			}
 
 			true
