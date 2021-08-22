@@ -106,7 +106,7 @@ impl UtopiaDetail {
     	});
     }
 
-    pub fn init(&self, sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>, listener: glib::Receiver<Option<utopia_common::library::LibraryItemFrontendDetails>>) {
+    pub fn init(&self, sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>, listener: glib::Receiver<crate::grid::SidebarMsg>) {
     	let self_ = imp::UtopiaDetail::from_instance(self);
     	self_.sender.set(sender).expect("Failed setting up UtopiaDetail");
     	let cover = self_.cover.get();
@@ -115,9 +115,14 @@ impl UtopiaDetail {
     	let info = self_.dinfos.get();
     	let current_uuid = self_.current_uuid.clone();
     	let current_module = self_.current_module.clone();
-    	listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info => @default-return glib::Continue(false), move |item| {
-    		match item {
+    	let primary_btn = self_.primary_btn.get();
+    	listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info, @weak primary_btn => @default-return glib::Continue(false), move |msg| {
+    		match msg.item {
     			Some(item) => {
+    				if msg.action == crate::grid::SidebarMsgAction::Update && current_uuid.borrow().as_ref() != Some(item.uuid.clone()).as_ref() {
+    					println!("TRACE: non-selected item got updated");
+    					return glib::Continue(true)
+    				}
     				for artwork in item.details.artworks {
 						match artwork.r#type {
 							utopia_common::library::artwork::ArtworkType::CaseCover => {
@@ -170,6 +175,10 @@ impl UtopiaDetail {
 
     				info.set_active_id(Some(&item.active_provider.uuid));
     				detail.set_visible(true);
+
+    				if item.active_provider.stati.iter().any(|&i| std::mem::discriminant(&i) == std::mem::discriminant(&utopia_common::library::LibraryItemStatus::Running(None))) {
+						primary_btn.set_label("Stop");
+					}
     			},
     			None => detail.set_visible(false)
     		};
