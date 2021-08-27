@@ -51,7 +51,8 @@
 		}
 	}
 	&:focus, &:selected {
-		background: unquote("@theme_selected_bg_color");
+		//background: unquote("@theme_selected_bg_color");
+		background: #3584e4;
 	}
 	&:focus .goverlay, &:selected .goverlay, .goverlay:hover {
 		.gimg {
@@ -60,6 +61,12 @@
 		.ginfo .gstatus {
 			margin-bottom: 2px;
 		}
+	}
+}
+
+.udark .gcard {
+	&:focus, &:selected {
+		background: darken(#3584e4, 20%);
 	}
 }
 

@@ -86,6 +86,7 @@ pub mod imp {
 			self.leaflet_back.set_visible(state);
 			self.sidebar_header.set_show_title_buttons(state);
 
+			obj.setup_triggers();
 			obj.setup_search();
 			obj.setup_library();
 			obj.setup_sidebar();
@@ -114,6 +115,44 @@ glib::wrapper! {
 impl UtopiaWindow {
 	pub fn new<P: glib::IsA<gtk::Application>>(app: &P) -> Self {
 		glib::Object::new(&[("application", app)]).expect("Failed to create UtopiaWindow")
+	}
+
+	pub fn setup_triggers(&self) {
+		let display = self.display();
+		let settings = gtk::Settings::for_display(&display);
+
+		fn update_theme_pref(display: &gtk::gdk::Display, settings: &gtk::Settings) {
+			let mut theme = glib::Value::for_value_type::<glib::GString>();
+			if display.get_setting("gtk-theme-name", &mut theme) {
+				if let Ok(theme) = theme.get::<glib::GString>() {
+					if theme.ends_with("-dark") {
+						settings.set_gtk_application_prefer_dark_theme(true);
+					} else {
+						settings.set_gtk_application_prefer_dark_theme(false);
+					}
+				}
+			}
+		}
+
+		fn update_theme_class(settings: &gtk::Settings, window: &UtopiaWindow) {
+			if let Some(theme) = settings.gtk_theme_name() {
+				if theme.ends_with("-dark") {
+					window.add_css_class("udark")
+				} else {
+					window.remove_css_class("udark")
+				}
+			}
+		}
+
+		display.connect_setting_changed(glib::clone!(@weak settings => move |display, setting| {
+			if setting == "gtk-theme-name" {
+				update_theme_pref(display, &settings)
+			}
+		}));
+		settings.connect_gtk_theme_name_notify(glib::clone!(@strong self as window => move |gtk_settings| update_theme_class(gtk_settings, &window)));
+
+		update_theme_pref(&display, &settings);
+		update_theme_class(&settings, self);
 	}
 
 	pub fn setup_search(&self) {
