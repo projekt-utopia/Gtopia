@@ -121,7 +121,7 @@ impl UtopiaDetail {
 			if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
 				if let Some(current_module) = self_.current_module.borrow().as_ref() {
 					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
-						crate::uev::UtopiaRequest::TriggerLaunch(uuid.into())
+						crate::uev::UtopiaRequest::TriggerPreferenceDiag(current_module.into(), uuid.into())
 					) {
 						eprintln!("Error trying to request preference diag from {} for {}: {}", uuid, current_module, e);
 					}
