@@ -6,6 +6,8 @@ pub mod integration_item;
 mod uev;
 pub mod utopia;
 
+pub mod preferences;
+
 use gtk::{gdk::Display,
           gio::{prelude::*, resources_register, Resource},
           glib,

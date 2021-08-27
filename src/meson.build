@@ -23,6 +23,7 @@ rust_sources = files(
 	'grid/mod.rs',
 	'grid/card.rs',
 	'integration_item.rs',
+	'preferences/mod.rs',
 	'utopia.rs',
 	'uev/mod.rs',
 	'uev/stream.rs'

@@ -1,15 +1,15 @@
 mod stream;
 
-use std::{sync::{Arc, Mutex},
+use std::{sync::{Arc, Mutex, RwLock},
           thread};
 
 use utopia_common::frontend as utopia;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt},
             runtime::Runtime};
 use futures::{channel::mpsc, stream::StreamExt};
-use libadwaita::prelude::*;
 //use gtk::prelude::*;
-use gtk::glib::{MainContext, Receiver, Sender, PRIORITY_DEFAULT};
+use gtk::{glib::{MainContext, Receiver, Sender, PRIORITY_DEFAULT},
+          prelude::{ButtonExt, GtkWindowExt, WidgetExt}};
 
 use crate::config::APP_ID;
 
@@ -29,13 +29,23 @@ pub enum UtopiaRequest {
 	//GetGameDetails(String /* uuid */),
 	TriggerLaunch(String /* uuid */),
 	// uuid of game, uuid of provider
-	TriggerProviderUpdate(String, String)
+	TriggerProviderUpdate(String, String),
+	// uuid of provider, uuid of game
+	TriggerPreferenceDiag(String, String),
+	SendUpdatedPreferences(
+		(String, utopia::library::preferences::DiagType),
+		std::collections::HashMap<std::string::String, utopia::library::preferences::FieldType>
+	)
 }
 
 #[derive(Debug)]
 pub enum UtopiaMessage {
 	RefreshGameLibrary(Vec<utopia::library::LibraryItemFrontendDetails>),
 	UpdateGame(utopia::library::LibraryItemFrontend),
+	OpenPrefDiag(
+		(String, utopia::library::preferences::DiagType),
+		utopia::library::preferences::PreferenceDiag
+	),
 	Disconnect
 }
 
@@ -111,6 +121,9 @@ impl UtopiaEvents {
 											utopia::CoreActions::ResponseGameUpdate(item) => {
 												send!(sender, UtopiaMessage::UpdateGame(item))
 											},
+											utopia::CoreActions::PreferenceDiagResponse(gtype, diag) => {
+												send!(sender, UtopiaMessage::OpenPrefDiag(gtype, diag))
+											},
 											_ => println!("Something else: {:?}", ev.action)
 										}
 									},
@@ -151,6 +164,24 @@ impl UtopiaEvents {
 										//tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
 									},
+									UtopiaRequest::TriggerPreferenceDiag(provider, uuid) => {
+										let library_reqw = utopia::FrontendEvent {
+											version: String::from("0.0.0"),
+											uuid: Some(String::from(crate::config::APP_ID)),
+											action: utopia::FrontendActions::RequestPreferenceDiag(provider,
+												utopia_common::library::preferences::DiagType::Item(uuid))
+										};
+										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
+									},
+									UtopiaRequest::SendUpdatedPreferences(ptype, values) => {
+										let library_reqw = utopia::FrontendEvent {
+											version: String::from("0.0.0"),
+											uuid: Some(String::from(crate::config::APP_ID)),
+											action: utopia::FrontendActions::PreferenceDiagUpdate(ptype, values)
+										};
+
+										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
+									}
 									_ => eprintln!("something else: {:?}", req)
 								}
 							}
@@ -168,7 +199,7 @@ impl UtopiaEvents {
 
 pub fn handle_event(
 	event: UtopiaMessage,
-	_channel: mpsc::Sender<UtopiaRequest>,
+	channel: mpsc::Sender<UtopiaRequest>,
 	window: crate::utopia::UtopiaWindow
 ) -> gtk::glib::Continue {
 	println!("New msg: {:?}", event);
@@ -180,7 +211,7 @@ pub fn handle_event(
 				.build();
 			let container = gtk::BoxBuilder::new().orientation(gtk::Orientation::Vertical).build();
 			gtk::prelude::BoxExt::append(&container, &label);
-			window.set_child(Some(&container));
+			libadwaita::prelude::ApplicationWindowExt::set_child(&window, Some(&container));
 			return gtk::glib::Continue(false);
 		},
 		UtopiaMessage::RefreshGameLibrary(library) => {
@@ -194,6 +225,25 @@ pub fn handle_event(
 		},
 		UtopiaMessage::UpdateGame(item) => {
 			window.update_item(item);
+		},
+		UtopiaMessage::OpenPrefDiag(ptype, diag) => {
+			let values: crate::preferences::ValueStore = Arc::new(RwLock::new(std::collections::HashMap::new()));
+			let pref = crate::preferences::GtopiaPreferenceBuilder::new(diag, values.clone());
+			let (prefdiag, save) = pref.build();
+			prefdiag.set_transient_for(Some(&window));
+			prefdiag.set_modal(true);
+
+			save.connect_clicked(move |_| {
+				channel
+					.clone()
+					.try_send(UtopiaRequest::SendUpdatedPreferences(
+						ptype.clone(),
+						values.read().unwrap().clone()
+					))
+					.unwrap();
+			});
+
+			prefdiag.show();
 		}
 	};
 	gtk::glib::Continue(true)

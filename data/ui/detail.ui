@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+	<menu id="more_btn">
+		<section>
+			<item>
+				<attribute name="label" translatable="yes">_Open Preferences</attribute>
+				<attribute name="action">detail.preferences</attribute>
+			</item>
+		</section>
+	</menu>
   <template class="UtopiaDetail" parent="GtkBox">
     <property name="visible">false</property>
     <property name="orientation">vertical</property>
@@ -71,14 +79,28 @@
         <child>
           <object class="GtkButton" id="hide_btn">
             <property name="halign">start</property>
-            <property name="icon_name">back-symbolic</property>
+            <property name="icon_name">go-previous-symbolic</property>
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="primary_btn">
-            <property name="halign">end</property>
-            <property name="label">Launch</property>
-          </object>
+					<object class="GtkBox">
+						<property name="orientation">horizontal</property>
+						<property name="halign">end</property>
+						<child>
+							<object class="GtkMenuButton" id="more_btn">
+				        <property name="icon_name">pan-up-symbolic</property>
+								<property name="menu-model">more_btn</property>
+				      </object>
+						</child>
+						<child>
+							<object class="GtkButton" id="primary_btn">
+				        <property name="label">Launch</property>
+				      </object>
+						</child>
+						<style>
+							<class name="linked" />
+						</style>
+					</object>
         </child>
       </object>
     </child>

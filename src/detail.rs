@@ -12,6 +12,8 @@ mod imp {
 		pub current_module: std::rc::Rc<std::cell::RefCell<Option<String>>>,
 		pub sender: once_cell::unsync::OnceCell<futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>>,
 
+		pub actions: gio::SimpleActionGroup,
+
 		#[template_child]
 		pub cover: TemplateChild<Picture>,
 		#[template_child]
@@ -45,6 +47,7 @@ mod imp {
 
 	impl ObjectImpl for UtopiaDetail {
 		fn constructed(&self, obj: &Self::Type) {
+			obj.setup_actions();
 			self.parent_constructed(obj);
 			obj.setup_triggers();
 		}
@@ -72,45 +75,61 @@ impl UtopiaDetail {
 			.connect_clicked(glib::clone!(@weak self as detail => move |_| {
 				detail.set_visible(false);
 			}));
-	}
 
-	pub fn init_triggers(&self) {
-		let self_ = imp::UtopiaDetail::from_instance(self);
-		let current_uuid = self_.current_uuid.clone();
-		let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
-		self_.primary_btn.connect_clicked(move |_| {
-			if let Some(uuid) = current_uuid.borrow().as_ref() {
-				if let Err(e) = sender
-					.write()
-					.unwrap()
-					.get_mut()
-					.unwrap()
-					.try_send(crate::uev::UtopiaRequest::TriggerLaunch(uuid.into()))
-				{
-					eprintln!("Error requesting {} to launch: {}", uuid, e);
+		self_
+			.primary_btn
+			.connect_clicked(glib::clone!(@strong self as detail => move |_| {
+				let self_ = imp::UtopiaDetail::from_instance(&detail);
+				if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
+					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
+						crate::uev::UtopiaRequest::TriggerLaunch(uuid.into())
+					) {
+						eprintln!("Error trying to request preference diag from {} for {:?}: {}", uuid, self_.current_module, e);
+					}
 				}
-			}
-		});
+			}));
 
-		let current_uuid = self_.current_uuid.clone();
-		let current_module = self_.current_module.clone();
-		let sender = std::sync::Arc::new(std::sync::RwLock::new(self_.sender.clone()));
-		self_.dinfos.connect_changed(move |infos| {
-			if let Some(active) = infos.active_id() {
-				if let Some(uuid) = current_uuid.borrow().as_ref() {
-					if let Some(provider_uuid) = current_module.borrow().as_ref() {
-						if provider_uuid != &active {
-							if let Err(e) = sender.write().unwrap().get_mut().unwrap().try_send(
-								crate::uev::UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())
-							) {
-								eprintln!("Error requesting {} to launch: {}", provider_uuid, e);
+		self_
+			.dinfos
+			.connect_changed(glib::clone!(@strong self as detail => move |infos| {
+				if let Some(active) = infos.active_id() {
+					let self_ = imp::UtopiaDetail::from_instance(&detail);
+					if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
+						if let Some(provider_uuid) = self_.current_module.borrow().as_ref() {
+							if provider_uuid != &active {
+								if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
+									crate::uev::UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())
+								) {
+									eprintln!("Error requesting {} to launch: {}", provider_uuid, e);
+								}
 							}
 						}
 					}
+					self_.current_module.replace(Some(active.into()));
 				}
-				current_module.replace(Some(active.into()));
+			}));
+	}
+
+	fn setup_actions(&self) {
+		let self_ = imp::UtopiaDetail::from_instance(self);
+		self.insert_action_group("detail", Some(&self_.actions));
+
+		let pref = gio::SimpleAction::new("preferences", None);
+
+		pref.connect_activate(glib::clone!(@strong self as detail => move |_, _| {
+			let self_ = imp::UtopiaDetail::from_instance(&detail);
+			if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
+				if let Some(current_module) = self_.current_module.borrow().as_ref() {
+					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
+						crate::uev::UtopiaRequest::TriggerLaunch(uuid.into())
+					) {
+						eprintln!("Error trying to request preference diag from {} for {}: {}", uuid, current_module, e);
+					}
+				}
 			}
-		});
+		}));
+
+		&self_.actions.add_action(&pref);
 	}
 
 	pub fn init(
@@ -189,12 +208,13 @@ impl UtopiaDetail {
 
     				if item.active_provider.stati.iter().any(|&i| std::mem::discriminant(&i) == std::mem::discriminant(&utopia_common::library::LibraryItemStatus::Running(None))) {
 						primary_btn.set_label("Stop");
+					} else {
+						primary_btn.set_label("Launch");
 					}
     			},
     			None => detail.set_visible(false)
     		};
     		glib::Continue(true)
     	}));
-		self.init_triggers();
 	}
 }
