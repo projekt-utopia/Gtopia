@@ -1,4 +1,5 @@
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use crate::uev::UtopiaRequest;
 
 mod imp {
 	use gtk::{Box, Button, ComboBox, Label, Picture};
@@ -8,11 +9,13 @@ mod imp {
 	#[derive(Debug, Default, CompositeTemplate)]
 	#[template(resource = "/dev/sp1rit/Utopia/ui/detail.ui")]
 	pub struct UtopiaDetail {
+		pub running: std::rc::Rc<std::cell::Cell<bool>>,
 		pub current_uuid: std::rc::Rc<std::cell::RefCell<Option<String>>>,
 		pub current_module: std::rc::Rc<std::cell::RefCell<Option<String>>>,
 		pub sender: once_cell::unsync::OnceCell<futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>>,
 
 		pub actions: gio::SimpleActionGroup,
+		pub kill_action: once_cell::unsync::OnceCell<gio::SimpleAction>,
 
 		#[template_child]
 		pub cover: TemplateChild<Picture>,
@@ -81,10 +84,12 @@ impl UtopiaDetail {
 			.connect_clicked(glib::clone!(@strong self as detail => move |_| {
 				let self_ = imp::UtopiaDetail::from_instance(&detail);
 				if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
-					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
-						crate::uev::UtopiaRequest::TriggerLaunch(uuid.into())
-					) {
-						eprintln!("Error trying to request preference diag from {} for {:?}: {}", uuid, self_.current_module, e);
+					let request = match self_.running.get() {
+						false => UtopiaRequest::TriggerLaunch(uuid.into()),
+						true => UtopiaRequest::TriggerClose(utopia_common::library::LibraryItemProviderQuitActions::ActiveProvider(uuid.into()))
+					};
+					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(request) {
+						eprintln!("Error requesting to close {}: {}", uuid, e);
 					}
 				}
 			}));
@@ -98,7 +103,7 @@ impl UtopiaDetail {
 						if let Some(provider_uuid) = self_.current_module.borrow().as_ref() {
 							if provider_uuid != &active {
 								if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
-									crate::uev::UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())
+									UtopiaRequest::TriggerProviderUpdate(uuid.into(), active.clone().into())
 								) {
 									eprintln!("Error requesting {} to launch: {}", provider_uuid, e);
 								}
@@ -121,7 +126,7 @@ impl UtopiaDetail {
 			if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
 				if let Some(current_module) = self_.current_module.borrow().as_ref() {
 					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
-						crate::uev::UtopiaRequest::TriggerPreferenceDiag(current_module.into(), uuid.into())
+						UtopiaRequest::TriggerPreferenceDiag(current_module.into(), uuid.into())
 					) {
 						eprintln!("Error trying to request preference diag from {} for {}: {}", uuid, current_module, e);
 					}
@@ -129,12 +134,30 @@ impl UtopiaDetail {
 			}
 		}));
 
+		let kill_action = gio::SimpleAction::new("kill", None);
+
+		kill_action.connect_activate(glib::clone!(@strong self as detail => move |_, _| {
+			let self_ = imp::UtopiaDetail::from_instance(&detail);
+			if let Some(uuid) = self_.current_uuid.borrow().as_ref() {
+				if self_.running.get() {
+					if let Err(e) = self_.sender.clone().get_mut().unwrap().try_send(
+						UtopiaRequest::TriggerKill(utopia_common::library::LibraryItemProviderQuitActions::ActiveProvider(uuid.into()))
+					) {
+						eprintln!("Error requesting to close {}: {}", uuid, e);
+					}
+				};
+			}
+		}));
+
 		&self_.actions.add_action(&pref);
+		&self_.actions.add_action(&kill_action);
+
+		&self_.kill_action.set(kill_action).unwrap();
 	}
 
 	pub fn init(
 		&self,
-		sender: futures::channel::mpsc::Sender<crate::uev::UtopiaRequest>,
+		sender: futures::channel::mpsc::Sender<UtopiaRequest>,
 		listener: glib::Receiver<crate::grid::SidebarMsg>
 	) {
 		let self_ = imp::UtopiaDetail::from_instance(self);
@@ -146,7 +169,9 @@ impl UtopiaDetail {
 		let current_uuid = self_.current_uuid.clone();
 		let current_module = self_.current_module.clone();
 		let primary_btn = self_.primary_btn.get();
-		listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info, @weak primary_btn => @default-return glib::Continue(false), move |msg| {
+		let kill_action = self_.kill_action.get().unwrap();
+		let running = self_.running.clone();
+		listener.attach(None, glib::clone!(@weak self as detail, @weak cover, @weak name, @weak uuid, @weak info, @weak primary_btn, @weak kill_action => @default-return glib::Continue(false), move |msg| {
     		match msg.item {
     			Some(item) => {
     				if msg.action == crate::grid::SidebarMsgAction::Update && current_uuid.borrow().as_ref() != Some(item.uuid.clone()).as_ref() {
@@ -207,9 +232,23 @@ impl UtopiaDetail {
     				detail.set_visible(true);
 
     				if item.active_provider.stati.iter().any(|&i| std::mem::discriminant(&i) == std::mem::discriminant(&utopia_common::library::LibraryItemStatus::Running(None))) {
+						running.set(true);
 						primary_btn.set_label("Stop");
+
 					} else {
+						running.set(false);
 						primary_btn.set_label("Launch");
+					}
+					if item.active_provider.stati.iter().any(|&i| {
+						if let utopia_common::library::LibraryItemStatus::Running(Some(_)) = i {
+							true
+						} else {
+							false
+						}
+					}) {
+						kill_action.set_enabled(true);
+					} else {
+						kill_action.set_enabled(false);
 					}
     			},
     			None => detail.set_visible(false)

@@ -3,6 +3,12 @@
 	<menu id="more_btn">
 		<section>
 			<item>
+				<attribute name="label" translatable="yes">_Kill</attribute>
+				<attribute name="action">detail.kill</attribute>
+			</item>
+		</section>
+		<section>
+			<item>
 				<attribute name="label" translatable="yes">_Open Preferences</attribute>
 				<attribute name="action">detail.preferences</attribute>
 			</item>

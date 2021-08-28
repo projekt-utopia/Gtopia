@@ -28,6 +28,8 @@ pub enum UtopiaRequest {
 	GetFullGameLibrary,
 	//GetGameDetails(String /* uuid */),
 	TriggerLaunch(String /* uuid */),
+	TriggerClose(utopia::library::LibraryItemProviderQuitActions),
+	TriggerKill(utopia::library::LibraryItemProviderQuitActions),
 	// uuid of game, uuid of provider
 	TriggerProviderUpdate(String, String),
 	// uuid of provider, uuid of game
@@ -152,6 +154,24 @@ impl UtopiaEvents {
 										};
 										//socket.block_writeable().await.unwrap();
 										//tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
+									},
+									UtopiaRequest::TriggerClose(quit) => {
+										let library_reqw = utopia::FrontendEvent {
+											version: String::from("0.0.0"),
+											uuid: Some(String::from(crate::config::APP_ID)),
+											action: utopia::FrontendActions::GameMethod(utopia_common::library::LibraryItemProviderMethods::Close(quit))
+										};
+
+										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
+									},
+									UtopiaRequest::TriggerKill(quit) => {
+										let library_reqw = utopia::FrontendEvent {
+											version: String::from("0.0.0"),
+											uuid: Some(String::from(crate::config::APP_ID)),
+											action: utopia::FrontendActions::GameMethod(utopia_common::library::LibraryItemProviderMethods::Kill(quit))
+										};
+
 										socket.write_s(&serde_json::to_vec(&library_reqw).unwrap()).await.unwrap();
 									},
 									UtopiaRequest::TriggerProviderUpdate(uuid, provider) => {
